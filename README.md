@@ -9,6 +9,9 @@ At this point in time, the following functions are available:
 
 * ```generate_USCB_ZCTA_network_file.R```: Function to generate ZIP code tabulation area (ZCTA) relationship file in CSV format. Includes optional logical arguments to enable bridge connectivity, omit connectivity with parks and other open spaces and omit connectivity with unpopulated ZCTA. In addition, there is the option to input a data frame of to and from addresses.
 
+These functions are set up to work with 2022 TIGER/line data.
+
+These functions are currently (February 2023) set up to use **2010** Census tract population data. This is because the Census SF1 data has not been released for the 2020 decennial Census yet. (It is due out in May, at which time these functions can be updated.)
 
 Required packages that must be installed to run this code:
 
