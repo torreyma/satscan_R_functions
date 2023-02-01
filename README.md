@@ -1,5 +1,5 @@
 # satscan_R_functions
-This repository contains functions for generating SaTScan related items.  It is a work in progress (in other words, there are likely some bugs) and will be updated reglarly. 
+This repository contains functions for generating SaTScan related items.  It is a work in progress (in other words, there are likely some bugs) and will be updated regularly. 
 
 At this point in time, the following functions are available:
 
@@ -49,7 +49,7 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 ###automatically download all necessary files from USCB TIGER website###
 ###you will only have to do this once###
-download_USCB_TIGER_files(FIPS.dt,USCB_TIGER.path)
+download_USCB_TIGER_files(FIPS_dt,USCB_TIGER.path)
 
 ###generate census tract relationship file###
 tract_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt)
