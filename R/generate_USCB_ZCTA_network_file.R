@@ -1,5 +1,5 @@
 ## generate_USCB_ZCTA_network_file_2020-MTcomments.R
-# Last modified: 2023-02-01 14:52
+# Last modified: 2023-02-02 14:22
 
 
 ###disable scientific notation###
@@ -15,46 +15,15 @@ library(censusapi)
 library(igraph)
 library(censusxy)
 library(sp)
-library(rgeos) ##MT: requires libgeos-dev apt package on deb/ubuntu systems. geos on arch.
+library(rgeos)
 
 data.table::setDTthreads(1)
 
 
-##MT: testing this as a non-function. uncomment next line (and matching }) when you want to re-functionize it:
-# generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL){
-	
+generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL){
 
 
-##MT:  Testing section ####################################################
-##MT: -- to be moved to a separate file when it works ####
-##MT: These are for calling the function below, so they shouldn't be here
-
-###specify data table containing state and county FIPS codes###
-FIPS.dt <- data.table(state=rep("36",5),county=c("061","005","047","081","085")) ##MT: creates a 2-column dt with 36 filling one column and the county codes filling the other
-
-###specify place to store USCB TIGER files###
-USCB_TIGER.path <- file.path(Sys.getenv('HOME'),"DOHMH-local/satscan2022-census-downloads")
-
-##MT: other variables to set:
-omit.park_openspace <- TRUE
-omit.unpopulated <- TRUE
-use.bridges <- TRUE
-
-###option to bring in CSV of addresses with column for connection ID###
-###each group must consist of at least two addresses###
-##MT: A user would replace this list with the address they wanted to use (not sure why the minimum is two and not one)
-#Staten Island Ferry connection#
-ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Island","New York"), STATE = c("NY","NY"), ZIP=c("10301","10004"),group_ID=c(1,1)) ##MT: creates a dt with two addresses 
-
-##MT: for reference to see what variables are needed, this was the original function call from GC's README (not to be used here):
-# ZCTA_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt)
-
-
-###########################################################################
-
-
-##MT:   skip this line until you make it a function:	
-##MT:   FIPS.dt <- copy(as.data.table(FIPS_dt))
+	FIPS.dt <- copy(as.data.table(FIPS_dt))
 
 	###pad state and county codes with leading zeros###
 	FIPS.dt[,state := sprintf("%02d", as.numeric(state))]
@@ -62,9 +31,8 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	
 	FIPS.dt <- unique(FIPS.dt[,c("state","county"),with=FALSE])
 	
-##MT: let's try:	
-	YEAR  <- "2022" ##MT: adding this variable so the year can be changed easily; leave in function though
-	tl_YEAR  <- paste0("tl_",YEAR,"_") ##MT: this format for the year is used in the filename construction in the function calls below.
+	YEAR  <- "2022" ## Enter the vintage of the TIGER/line files you want here
+	tl_YEAR  <- paste0("tl_",YEAR,"_")
 	
 	old.wd <- getwd()
 
@@ -105,12 +73,8 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 	}), use.names=TRUE, fill=TRUE)
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	faces.dt[,USCB_block_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10,BLOCKCE10)]
 	faces.dt[,USCB_block_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20,BLOCKCE20)]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	suppressWarnings(faces.dt[,ZCTA5CE10 := ifelse(is.na(as.numeric(ZCTA5CE10)),"99999",sprintf("%05d", as.numeric(ZCTA5CE10)))])
 	suppressWarnings(faces.dt[,ZCTA5CE20 := ifelse(is.na(as.numeric(ZCTA5CE20)),"99999",sprintf("%05d", as.numeric(ZCTA5CE20)))])
 	
 	
@@ -130,31 +94,21 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 	}), use.names=TRUE, fill=TRUE))
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	faces.sf$USCB_block_10 <- paste0(faces.sf$STATEFP10,faces.sf$COUNTYFP10,faces.sf$TRACTCE10,faces.sf$BLOCKCE10)
 	faces.sf$USCB_block_10 <- paste0(faces.sf$STATEFP20,faces.sf$COUNTYFP20,faces.sf$TRACTCE20,faces.sf$BLOCKCE20)
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	suppressWarnings(faces.sf$ZCTA5CE10 <- ifelse(is.na(as.numeric(faces.sf$ZCTA5CE10)),"99999",sprintf("%05d", as.numeric(faces.sf$ZCTA5CE10))))
 	suppressWarnings(faces.sf$ZCTA5CE20 <- ifelse(is.na(as.numeric(faces.sf$ZCTA5CE20)),"99999",sprintf("%05d", as.numeric(faces.sf$ZCTA5CE20))))
 	
 	###create single part polygons from NA ZCTA and then assign arbitrary ID###
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	faces.sf1 <- st_sf(as.data.table(faces.sf)[ZCTA5CE10=="99999",.(geometry = st_union(geometry)),by=list(ZCTA5CE10)])
 	faces.sf1 <- st_sf(as.data.table(faces.sf)[ZCTA5CE20=="99999",.(geometry = st_union(geometry)),by=list(ZCTA5CE20)])
 	
 	faces.sf1 <- st_union(faces.sf1[1:nrow(faces.sf1),], by_feature = T)
 	
 	suppressWarnings(faces.sf_99999 <- st_cast(faces.sf1,"POLYGON"))
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	faces.sf_99999$ZCTA5CE10 <- paste0("99999.",1:nrow(faces.sf_99999))
 	faces.sf_99999$ZCTA5CE20 <- paste0("99999.",1:nrow(faces.sf_99999))
 	
 	###perform spatial join on multipart polygon and census block centroids###
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: (note USCB_block_10 stays 10, for now, see note below in getCensus section)
-##MT: orig:	cb.sf <- st_sf(as.data.table(faces.sf)[ZCTA5CE10=="99999",.(geometry = st_union(geometry)),by=list(USCB_block_10)])
+	## (note USCB_block_10 stays _10, for now, see note below in getCensus section)
 	cb.sf <- st_sf(as.data.table(faces.sf)[ZCTA5CE20=="99999",.(geometry = st_union(geometry)),by=list(USCB_block_10)])
 	
 	cb.sf <- st_union(cb.sf[1:nrow(cb.sf),], by_feature = T)
@@ -174,22 +128,15 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 		ifelse(length(sf.sj[[i]])==0,NA,sf.sj[[i]][[1]])
 	})
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: (note here we are creating a new column in cb.sf.pt, but changing that to 20 for consistency too)
-##MT: orig:	cb.sf.pt$ZCTA5CE10_sj <- faces.sf_99999$ZCTA5CE10[unlist(int.zone)]
 	cb.sf.pt$ZCTA5CE20_sj <- faces.sf_99999$ZCTA5CE20[unlist(int.zone)]
 	
 	cb.pt.dt <- as.data.table(st_drop_geometry(cb.sf.pt))
 	faces.dt <- merge(faces.dt,cb.pt.dt,by="USCB_block_10",all.x=TRUE)
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	faces.dt[,ZCTA5CE10 := ifelse(is.na(ZCTA5CE10_sj),ZCTA5CE10,ZCTA5CE10_sj)]
 	faces.dt[,ZCTA5CE20 := ifelse(is.na(ZCTA5CE20_sj),ZCTA5CE20,ZCTA5CE20_sj)]
 	
 	###future work: use state plane coordinate systems based on county FIPS code###
 	
 	###generate census block to ZCTA look-up table###
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	cb2zcta.dt <- unique(faces.dt[,c('USCB_block_10','ZCTA5CE10'),with=FALSE])
 	cb2zcta.dt <- unique(faces.dt[,c('USCB_block_10','ZCTA5CE20'),with=FALSE])
 	
 	rm(cb.sf.pt,faces.sf_99999,faces.sf,faces.sf1)
@@ -197,9 +144,8 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	###########################################
 	###pull 2010 block-level population data###
 	###########################################
-	##MT: This SHOULD be updated to 2020, but the SF1 data is not released yet, see:
+	## This SHOULD be updated to 2020, but the SF1 data is not released yet, see:
 	## https://www2.census.gov/programs-surveys/decennial/2020/program-management/2010_20_data_product_release_dates.pdf
-	## As a result, I will try to get this to work with 2010 data below, but it seems questionable.
 	
 	mycensuskey <-"2ca0b2830ae4835905efab6c35f8cd2b3f570a8a"
 	my.survey <- "dec/sf1"
@@ -257,8 +203,6 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	###calculate proportion of census block that is park or open space###
 	arealm.dt <- merge(arealm.dt, facesal.dt, by="AREAID")
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	arealm.dt <- merge(arealm.dt, faces.dt[LWFLAG !="P", c("TFID","ZCTA5CE10","USCB_block_10","poly_area"),with=FALSE], by="TFID")
 	arealm.dt <- merge(arealm.dt, faces.dt[LWFLAG !="P", c("TFID","ZCTA5CE20","USCB_block_10","poly_area"),with=FALSE], by="TFID")
 	
 	arealm.dt <- merge(arealm.dt[,.(poly_area=sum(poly_area)),by=list(USCB_block_10)], faces.dt[LWFLAG != "P",.(poly_area=sum(poly_area)), by=USCB_block_10], by="USCB_block_10")
@@ -271,8 +215,6 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	###generate table of census blocks to omit###
 	#############################################
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_10,ZCTA5CE10)], api.data_cb[,c("USCB_block_10","P001001"), with=FALSE], by="USCB_block_10", all.x=TRUE)
 	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_10,ZCTA5CE20)], api.data_cb[,c("USCB_block_10","P001001"), with=FALSE], by="USCB_block_10", all.x=TRUE)
 	
 	omit.dt[,P001001 := ifelse(is.na(P001001),0,P001001)]
@@ -280,16 +222,12 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	###deal with errors where unpopulated parks/open spaces have P001001 > 0 (e.g., Central Park, Bronx Zoo)###
 	omit.dt[,P001001 := ifelse(USCB_block_10 %in% unique(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_10), 0, P001001)]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	omit.dt <- merge(omit.dt[P001001==0,.(poly_area=sum(poly_area)),by=list(ZCTA5CE10)],omit.dt[,.(poly_area=sum(poly_area)),by=list(ZCTA5CE10)], by="ZCTA5CE10", all.y=TRUE)
 	omit.dt <- merge(omit.dt[P001001==0,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)],omit.dt[,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)], by="ZCTA5CE20", all.y=TRUE)
 
 	omit.dt[,prop.area := round(poly_area.x/poly_area.y,2)]
 	
 	omit.dt <- omit.dt[prop.area==1]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	omit.dt[,type := ifelse(ZCTA5CE10 %in% unique(substr(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_10,1,11)),"park_openspace","unpopulated")]
 	omit.dt[,type := ifelse(ZCTA5CE20 %in% unique(substr(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_10,1,11)),"park_openspace","unpopulated")]
 	
 	
@@ -350,25 +288,15 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_10.1",by.y="USCB_block_10",all.x=TRUE)
 	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_10.2",by.y="USCB_block_10",all.x=TRUE)
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	suppressWarnings(b.dt2 <- b.dt2[!(is.na(as.numeric(ZCTA5CE10.x))) & !(is.na(as.numeric(ZCTA5CE10.y)))])
 	suppressWarnings(b.dt2 <- b.dt2[!(is.na(as.numeric(ZCTA5CE20.x))) & !(is.na(as.numeric(ZCTA5CE20.y)))])
 	
-##MT: Change next two lines to work with Census '20 variables that come with 2022 data:
-##MT: orig:	b.dt2[,ZCTA5CE10.1 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.y,ZCTA5CE10.x)]
 	b.dt2[,ZCTA5CE20.1 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.y,ZCTA5CE20.x)]
-##MT: orig:	b.dt2[,ZCTA5CE10.2 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.x,ZCTA5CE10.y)]
 	b.dt2[,ZCTA5CE20.2 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.x,ZCTA5CE20.y)]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	b.dt2[,c("ZCTA5CE10.x","ZCTA5CE10.y"):= NULL]
 	b.dt2[,c("ZCTA5CE20.x","ZCTA5CE20.y"):= NULL]
 
 	###aggregate by ZCTA and exclude piers###
-##MT: Change next two lines to work with Census '20 variables that come with 2022 data:
-##MT: orig:	neighbors.dt <- b.dt2[is.pier==0,.(edge_len=sum(as.numeric(edge_len))),by=list(ZCTA5CE10.1,ZCTA5CE10.2)]
 	neighbors.dt <- b.dt2[is.pier==0,.(edge_len=sum(as.numeric(edge_len))),by=list(ZCTA5CE20.1,ZCTA5CE20.2)]
-##MT: orig:	neighbors.dt <- neighbors.dt[ZCTA5CE10.1 != ZCTA5CE10.2]
 	neighbors.dt <- neighbors.dt[ZCTA5CE20.1 != ZCTA5CE20.2]
 	
 	############################
@@ -383,16 +311,10 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 	node.dt <- unique(rbindlist(list(node.dt1,node.dt2),use.names=TRUE,fill=TRUE))
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE10","LWFLAG"),with=FALSE],by.x="TFIDL",by.y="TFID",all.x=TRUE)
 	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDL",by.y="TFID",all.x=TRUE)
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE10","LWFLAG"),with=FALSE],by.x="TFIDR",by.y="TFID",all.x=TRUE)
 	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDR",by.y="TFID",all.x=TRUE)
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	node.dt.m <- melt(node.dt, id.vars = c("TNID"), measure = list(c("ZCTA5CE10.x", "ZCTA5CE10.y"), c("LWFLAG.x", "LWFLAG.y")), value.name = c("ZCTA5CE10", "LWFLAG"))
 	node.dt.m <- melt(node.dt, id.vars = c("TNID"), measure = list(c("ZCTA5CE20.x", "ZCTA5CE20.y"), c("LWFLAG.x", "LWFLAG.y")), value.name = c("ZCTA5CE20", "LWFLAG"))
 
 	node.dt.m[,variable:=NULL]
@@ -429,24 +351,14 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_10.x",by.y="USCB_block_10",all.x=TRUE)
 	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_10.y",by.y="USCB_block_10",all.x=TRUE)
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	suppressWarnings(pt.dt <- pt.dt[!(is.na(as.numeric(ZCTA5CE10.x))) & !(is.na(as.numeric(ZCTA5CE10.y)))])
 	suppressWarnings(pt.dt <- pt.dt[!(is.na(as.numeric(ZCTA5CE20.x))) & !(is.na(as.numeric(ZCTA5CE20.y)))])
 	
-##MT: Change next two lines to work with Census '20 variables that come with 2022 data:
-##MT: orig:	pt.dt[,ZCTA5CE10.1 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.y,ZCTA5CE10.x)]
 	pt.dt[,ZCTA5CE20.1 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.y,ZCTA5CE20.x)]
-##MT: orig:	pt.dt[,ZCTA5CE10.2 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.x,ZCTA5CE10.y)]
 	pt.dt[,ZCTA5CE20.2 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.x,ZCTA5CE20.y)]
 	
-##MT: Change next two lines to work with Census '20 variables that come with 2022 data:
-##MT: orig:	pt.dt[,c("TNID","USCB_block_10.x","USCB_block_10.y","is.pier","ZCTA5CE10.x","ZCTA5CE10.y"):=NULL]
 	pt.dt[,c("TNID","USCB_block_10.x","USCB_block_10.y","is.pier","ZCTA5CE20.x","ZCTA5CE20.y"):=NULL]
-##MT: orig:	pt.dt <- unique(pt.dt)[ZCTA5CE10.1 != ZCTA5CE10.2]
 	pt.dt <- unique(pt.dt)[ZCTA5CE20.1 != ZCTA5CE20.2]
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	pt.dt <- merge(pt.dt, neighbors.dt, by=c("ZCTA5CE10.1", "ZCTA5CE10.2"), all.x=TRUE)
 	pt.dt <- merge(pt.dt, neighbors.dt, by=c("ZCTA5CE20.1", "ZCTA5CE20.2"), all.x=TRUE)
 	pt.dt <- pt.dt[is.na(edge_len)]
 	pt.dt[,edge_len := 0]
@@ -495,27 +407,16 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	bridges.nodes.dt[,to_tot := ifelse(is.na(to_tot),0,to_tot)]
 	bridges.nodes.dt <- merge(bridges.nodes.dt, dg.dt, by="TNID", all.x=TRUE)
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	bridges.nodes.dt_ends <- unique(merge(bridges.nodes.dt[to_tot==0 | from_tot==0], node.dt.m, by="TNID")[,c("b_grp","ZCTA5CE10"),with=FALSE])
 	bridges.nodes.dt_ends <- unique(merge(bridges.nodes.dt[to_tot==0 | from_tot==0], node.dt.m, by="TNID")[,c("b_grp","ZCTA5CE20"),with=FALSE])
 
 	bridges.nodes.dt_ends <- merge(bridges.nodes.dt_ends,bridges.nodes.dt_ends,by="b_grp", allow.cartesian=TRUE)
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	bridges.nodes.dt_ends <- unique(bridges.nodes.dt_ends)[ZCTA5CE10.x != ZCTA5CE10.y]
 	bridges.nodes.dt_ends <- unique(bridges.nodes.dt_ends)[ZCTA5CE20.x != ZCTA5CE20.y]
 
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	suppressWarnings(bridges.nodes.dt_ends <- bridges.nodes.dt_ends[!(is.na(as.numeric(ZCTA5CE10.x))) & !(is.na(as.numeric(ZCTA5CE10.y)))])
 	suppressWarnings(bridges.nodes.dt_ends <- bridges.nodes.dt_ends[!(is.na(as.numeric(ZCTA5CE20.x))) & !(is.na(as.numeric(ZCTA5CE20.y)))])
 	
-##MT: Change next two lines to work with Census '20 variables that come with 2022 data:
-##MT: orig:	bridges.nodes.dt_ends[,ZCTA5CE10.1 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.y,ZCTA5CE10.x)]
 	bridges.nodes.dt_ends[,ZCTA5CE20.1 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.y,ZCTA5CE20.x)]
-##MT: orig:	bridges.nodes.dt_ends[,ZCTA5CE10.2 := ifelse(as.numeric(ZCTA5CE10.x) > as.numeric(ZCTA5CE10.y),ZCTA5CE10.x,ZCTA5CE10.y)]
 	bridges.nodes.dt_ends[,ZCTA5CE20.2 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.x,ZCTA5CE20.y)]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	bridges.nodes.dt_ends <- unique(bridges.nodes.dt_ends[,c("b_grp","ZCTA5CE10.1","ZCTA5CE10.2"),with=FALSE])
 	bridges.nodes.dt_ends <- unique(bridges.nodes.dt_ends[,c("b_grp","ZCTA5CE20.1","ZCTA5CE20.2"),with=FALSE])
 
 	###get length by node###
@@ -528,20 +429,13 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 	bridges.dt_agg[,edge_len := NULL]
 	bridges.dt_agg <- merge(bridges.dt_agg, bridges.nodes.dt_ends, by="b_grp", all.x=TRUE)
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	bridges.dt_agg <- bridges.dt_agg[bridges.dt_agg[, .I[which.min(bridge_length)], by=list(ZCTA5CE10.1, ZCTA5CE10.2)]$V1]
 	bridges.dt_agg <- bridges.dt_agg[bridges.dt_agg[, .I[which.min(bridge_length)], by=list(ZCTA5CE20.1, ZCTA5CE20.2)]$V1]
 	
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	setorder(bridges.dt_agg, ZCTA5CE10.1, ZCTA5CE10.2)
 	setorder(bridges.dt_agg, ZCTA5CE20.1, ZCTA5CE20.2)
 		
 	###code to deal with bridge connections where one or more ZCTA are NA###
-##MT: Change next line to work with Census '20 variables that come with 2022 data:
-##MT: orig:	cont <- ifelse(nrow(bridges.dt_agg[grepl("99999",ZCTA5CE10.1) | grepl("99999",ZCTA5CE10.2)]) > 0, TRUE, FALSE)
 	cont <- ifelse(nrow(bridges.dt_agg[grepl("99999",ZCTA5CE20.1) | grepl("99999",ZCTA5CE20.2)]) > 0, TRUE, FALSE)
 	
-##MT: giving up on doing line edits, and just doing a find and replace on /CE10/CE20 for the rest of the file!
 	while(cont){
 		xx <- copy(bridges.dt_agg)
 		#xx[,u_id := .I]
@@ -769,4 +663,4 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 	
 	return(all_pairs.dt)
 
-# }
+}
