@@ -1,3 +1,4 @@
+### satscan/generate_USCB_tract_network_file_2020-MTcomments.R
 ###disable scientific notation###
 options(scipen = 999)
 
@@ -14,9 +15,41 @@ library(censusxy)
 data.table::setDTthreads(1)
 
 
-generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL){
-	
-	FIPS.dt <- copy(as.data.table(FIPS_dt))
+##MT: testing this as a non-function. uncomment next line (and matching }) when you want to re-functionize it:
+# generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL){
+
+
+
+##MT:  Testing section ####################################################
+##MT: -- to be moved to a separate file when it works ####
+##MT: These are for calling the function below, so they shouldn't be here
+
+###specify data table containing state and county FIPS codes###
+FIPS.dt <- data.table(state=rep("36",5),county=c("061","005","047","081","085")) ##MT: creates a 2-column dt with 36 filling one column and the county codes filling the other
+
+###specify place to store USCB TIGER files###
+USCB_TIGER.path <- file.path(Sys.getenv('HOME'),"DOHMH-local/satscan2022-census-downloads")
+
+##MT: other variables to set:
+omit.park_openspace <- TRUE
+omit.unpopulated <- TRUE
+use.bridges <- TRUE
+
+###option to bring in CSV of addresses with column for connection ID###
+###each group must consist of at least two addresses###
+##MT: A user would replace this list with the address they wanted to use (not sure why the minimum is two and not one)
+#Staten Island Ferry connection#
+ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Island","New York"), STATE = c("NY","NY"), ZIP=c("10301","10004"),group_ID=c(1,1)) ##MT: creates a dt with two addresses 
+
+##MT: for reference to see what variables are needed, this was the original function call from GC's README (not to be used here):
+# tract_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt)
+
+###########################################################################
+
+
+
+##MT:   skip this line until you make it a function:	
+##MT: 	FIPS.dt <- copy(as.data.table(FIPS_dt))
 
 	###pad state and county codes with leading zeros###
 	FIPS.dt[,state := sprintf("%02d", as.numeric(state))]
@@ -24,6 +57,10 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	
 	FIPS.dt <- unique(FIPS.dt[,c("state","county"),with=FALSE])
 	
+##MT: let's try:	
+	YEAR  <- "2022" ##MT: adding this variable so the year can be changed easily; leave in function though
+	tl_YEAR  <- paste0("tl_",YEAR,"_") ##MT: this format for the year is used in the filename construction in the function calls below.
+
 	old.wd <- getwd()
 
 	setwd(USCB_TIGER.path)
@@ -32,7 +69,7 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	###consolidate county-level edge shapefiles into a single data.table###
 	#######################################################################
 	
-	edge.files <- paste0("tl_2019_",FIPS.dt$state,FIPS.dt$county,"_edges")
+	edge.files <- paste0(tl_YEAR,FIPS.dt$state,FIPS.dt$county,"_edges")
 	
 	edges.dt <- rbindlist(lapply(edge.files,function(j){
 	
@@ -50,7 +87,7 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	###consolidate county-level face shapefiles into a single data.table###
 	#######################################################################
 	
-	face.files <- paste0("tl_2019_",FIPS.dt$state,FIPS.dt$county,"_faces")
+	face.files <- paste0(tl_YEAR,FIPS.dt$state,FIPS.dt$county,"_faces")
 	
 	faces.dt <- rbindlist(lapply(face.files,function(j){
 
@@ -63,12 +100,18 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 
 	}), use.names=TRUE, fill=TRUE)
 	
-	faces.dt[,USCB_tract_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10)]
-	faces.dt[,USCB_block_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10,BLOCKCE10)]
+##MT: Change these two lines to work with Census '20 variables that come with 2022 data:
+##MT: orig:	faces.dt[,USCB_tract_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10)]
+	faces.dt[,USCB_tract_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20)]
+##MT: orig:	faces.dt[,USCB_block_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10,BLOCKCE10)]
+	faces.dt[,USCB_block_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20,BLOCKCE20)]
 	
 	###########################################
 	###pull 2010 block-level population data###
 	###########################################
+	##MT: This SHOULD be updated to 2020, but the SF1 data is not released yet, see:
+	## https://www2.census.gov/programs-surveys/decennial/2020/program-management/2010_20_data_product_release_dates.pdf
+	## As a result, I will try to get this to work with 2010 data below, but it seems questionable.
 	
 	mycensuskey <-"2ca0b2830ae4835905efab6c35f8cd2b3f570a8a"
 	my.survey <- "dec/sf1"
@@ -89,7 +132,7 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	###load Topological Faces / Area Landmark files###
 	##################################################
 	
-	facesal.files <- paste0("tl_2019_",unique(FIPS.dt$state),"_facesal")
+	facesal.files <- paste0(tl_YEAR,unique(FIPS.dt$state),"_facesal")
 	
 	facesal.dt <- rbindlist(lapply(facesal.files,function(j){
 
@@ -103,7 +146,7 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	###load Area Landmark files###
 	##############################
 	
-	arealm.files <- paste0("tl_2019_",unique(FIPS.dt$state),"_arealm")
+	arealm.files <- paste0(tl_YEAR,unique(FIPS.dt$state),"_arealm")
 	
 	arealm.dt <- rbindlist(lapply(arealm.files,function(j){
 
@@ -471,6 +514,7 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	
 	setwd(old.wd)
 	
-	return(all_pairs.dt)
+##MT:   skip this line until you make it a function:	
+##	return(all_pairs.dt)
 
-}
+# }

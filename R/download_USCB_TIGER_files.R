@@ -1,3 +1,5 @@
+## download_USCB_TIGER_files.R
+## Last modified: 2023-02-02 11:41
 ###disable scientific notation###
 options(scipen = 999)
 
@@ -8,7 +10,7 @@ data.table::setDTthreads(1)
 
 
 download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
-	
+
 	FIPS.dt <- copy(as.data.table(FIPS_dt))
 
 	###pad state and county codes with leading zeros###
@@ -17,7 +19,10 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 	
 	FIPS.dt <- unique(FIPS.dt[,c("state","county"),with=FALSE])
 
-	base.URL <- "https://www2.census.gov/geo/tiger/TIGER2019"
+	## Set the vintage of the TIGER/lines you want here:
+	YEAR  <- "2022"
+	tl_YEAR  <- paste0("tl_",YEAR,"_")
+	base.URL <- paste0("https://www2.census.gov/geo/tiger/TIGER",YEAR)
 
 	old.wd <- getwd()
 
@@ -34,11 +39,11 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 
 		#j <- 1
 		
-		this.URL <- file.path(main.URL,paste0("tl_2019_",FIPS.dt[j]$state,FIPS.dt[j]$county,"_faces.zip"))
+		this.URL <- file.path(main.URL,paste0(tl_YEAR,FIPS.dt[j]$state,FIPS.dt[j]$county,"_faces.zip"))
 
 		file <- basename(this.URL)
 		
-		###download commpressed file###
+		###download compressed file###
 		download.file(this.URL, file)
 		
 		###unzip compressed file###
@@ -65,7 +70,7 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 
 		#j <- 1
 		
-		this.URL <- file.path(main.URL,paste0("tl_2019_",FIPS.dt[j]$state,FIPS.dt[j]$county,"_edges.zip"))
+		this.URL <- file.path(main.URL,paste0(tl_YEAR,FIPS.dt[j]$state,FIPS.dt[j]$county,"_edges.zip"))
 
 		file <- basename(this.URL)
 		
@@ -96,7 +101,7 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 
 		#j <- 1
 		
-		this.URL <- file.path(main.URL,paste0("tl_2019_",j,"_facesal.zip"))
+		this.URL <- file.path(main.URL,paste0(tl_YEAR,j,"_facesal.zip"))
 
 		file <- basename(this.URL)
 		
@@ -126,7 +131,7 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 
 		#j <- 1
 		
-		this.URL <- file.path(main.URL,paste0("tl_2019_",j,"_arealm.zip"))
+		this.URL <- file.path(main.URL,paste0(tl_YEAR,j,"_arealm.zip"))
 
 		file <- basename(this.URL)
 		
