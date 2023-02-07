@@ -1,5 +1,5 @@
 ## download_USCB_TIGER_files.R
-## Last modified: 2023-02-02 11:41
+## Last modified: 2023-02-07 16:30
 ###disable scientific notation###
 options(scipen = 999)
 
@@ -9,7 +9,7 @@ library(data.table)
 data.table::setDTthreads(1)
 
 
-download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
+download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path,TIGER_year=2022){
 
 	FIPS.dt <- copy(as.data.table(FIPS_dt))
 
@@ -20,7 +20,7 @@ download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path){
 	FIPS.dt <- unique(FIPS.dt[,c("state","county"),with=FALSE])
 
 	## Set the vintage of the TIGER/lines you want here:
-	YEAR  <- "2022"
+	YEAR  <- TIGER_year
 	tl_YEAR  <- paste0("tl_",YEAR,"_")
 	base.URL <- paste0("https://www2.census.gov/geo/tiger/TIGER",YEAR)
 

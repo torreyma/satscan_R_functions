@@ -1,5 +1,5 @@
 ## generate_USCB_ZCTA_network_file_2020-MTcomments.R
-# Last modified: 2023-02-02 14:22
+# Last modified: 2023-02-07 17:02
 
 
 ###disable scientific notation###
@@ -20,7 +20,7 @@ library(rgeos)
 data.table::setDTthreads(1)
 
 
-generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL){
+generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL,TIGER_year=2022){
 
 
 	FIPS.dt <- copy(as.data.table(FIPS_dt))
@@ -31,7 +31,7 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	
 	FIPS.dt <- unique(FIPS.dt[,c("state","county"),with=FALSE])
 	
-	YEAR  <- "2022" ## Enter the vintage of the TIGER/line files you want here
+	YEAR  <- TIGER_year
 	tl_YEAR  <- paste0("tl_",YEAR,"_")
 	
 	old.wd <- getwd()
