@@ -31,9 +31,8 @@ Required packages that must be installed to run this code:
 
 * ```sp```: required by ```rgeos```
 
-          
-          
-          
+
+
 Here is a code sample for generating a network file for tracts and ZIP code tabulation areas within NYC:
 ```
 source("R/download_USCB_TIGER_files.R")
