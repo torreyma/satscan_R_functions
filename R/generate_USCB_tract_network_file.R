@@ -1,5 +1,5 @@
-### generate_USCB_tract_network_file_2020-MTcomments.R
-# Last modified: 2023-02-08 17:46
+# generate_USCB_tract_network_file.R
+# Last modified: 2023-02-09 16:26
 
 
 ###disable scientific notation###
@@ -139,26 +139,26 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 	
 	arealm.dt[,prop.area := round(poly_area.x/poly_area.y,2)]
 
-	arealm.dt <- merge(arealm.dt, api.data_cb[,.(P001001=sum(P001001)),by=list(USCB_block_20)], by="USCB_block_20",all.x=TRUE)
+	arealm.dt <- merge(arealm.dt, api.data_cb[,.(P1_001N=sum(P1_001N)),by=list(USCB_block_20)], by="USCB_block_20",all.x=TRUE)
 	
 	#############################################
 	###generate table of census blocks to omit###
 	#############################################
 	
-	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_20,USCB_tract_20)], api.data_cb[,c("USCB_block_20","P001001"), with=FALSE], by="USCB_block_20", all.x=TRUE)
+	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_20,USCB_tract_20)], api.data_cb[,c("USCB_block_20","P1_001N"), with=FALSE], by="USCB_block_20", all.x=TRUE)
 	
-	omit.dt[,P001001 := ifelse(is.na(P001001),0,P001001)]
+	omit.dt[,P1_001N := ifelse(is.na(P1_001N),0,P1_001N)]
 
-	###deal with errors where unpopulated parks/open spaces have P001001 > 0 (e.g., Central Park, Bronx Zoo)###
-	omit.dt[,P001001 := ifelse(USCB_block_20 %in% unique(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_20), 0, P001001)]
+	###deal with errors where unpopulated parks/open spaces have P1_001N > 0 (e.g., Central Park, Bronx Zoo)###
+	omit.dt[,P1_001N := ifelse(USCB_block_20 %in% unique(arealm.dt[P1_001N > 0 & prop.area==1]$USCB_block_20), 0, P1_001N)]
 	
-	omit.dt <- merge(omit.dt[P001001==0,.(poly_area=sum(poly_area)),by=list(USCB_tract_20)],omit.dt[,.(poly_area=sum(poly_area)),by=list(USCB_tract_20)], by="USCB_tract_20", all.y=TRUE)
+	omit.dt <- merge(omit.dt[P1_001N==0,.(poly_area=sum(poly_area)),by=list(USCB_tract_20)],omit.dt[,.(poly_area=sum(poly_area)),by=list(USCB_tract_20)], by="USCB_tract_20", all.y=TRUE)
 
 	omit.dt[,prop.area := round(poly_area.x/poly_area.y,2)]
 	
 	omit.dt <- omit.dt[prop.area==1]
 	
-	omit.dt[,type := ifelse(USCB_tract_20 %in% unique(substr(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_20,1,11)),"park_openspace","unpopulated")]
+	omit.dt[,type := ifelse(USCB_tract_20 %in% unique(substr(arealm.dt[P1_001N > 0 & prop.area==1]$USCB_block_20,1,11)),"park_openspace","unpopulated")]
 	
 	
 	###################################################
@@ -207,10 +207,10 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 
 	block_rel.dt[,tot.c := ifelse(is.na(tot.c),0,tot.c)]
 
-	block_rel.dt <- merge(block_rel.dt, api.data_cb[,c("USCB_block_20","P001001"), with=FALSE], by="USCB_block_20", all.x=TRUE)
+	block_rel.dt <- merge(block_rel.dt, api.data_cb[,c("USCB_block_20","P1_001N"), with=FALSE], by="USCB_block_20", all.x=TRUE)
 
 	###remove piers misassigned to another county (e.g., piers in Queens and Brooklyn misassigned to Manhattan)###
-	piers.dt <- block_rel.dt[tot.c==tot & P001001==0]
+	piers.dt <- block_rel.dt[tot.c==tot & P1_001N==0]
 
 	b.dt2[,is.pier := ifelse(USCB_block_20.1 %in% piers.dt$USCB_block_20 | USCB_block_20.2 %in% piers.dt$USCB_block_20,1,0)]
 

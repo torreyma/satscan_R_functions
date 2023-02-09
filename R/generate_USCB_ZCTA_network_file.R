@@ -1,5 +1,5 @@
-## generate_USCB_ZCTA_network_file_2020-MTcomments.R
-# Last modified: 2023-02-07 17:02
+## generate_USCB_ZCTA_network_file.R
+# Last modified: 2023-02-09 17:27
 
 
 ###disable scientific notation###
@@ -73,7 +73,7 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 
 	}), use.names=TRUE, fill=TRUE)
 	
-	faces.dt[,USCB_block_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20,BLOCKCE20)]
+	faces.dt[,USCB_block_20 := paste0(STATEFP20,COUNTYFP20,TRACTCE20,BLOCKCE20)]
 	
 	suppressWarnings(faces.dt[,ZCTA5CE20 := ifelse(is.na(as.numeric(ZCTA5CE20)),"99999",sprintf("%05d", as.numeric(ZCTA5CE20)))])
 	
@@ -94,7 +94,7 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 
 	}), use.names=TRUE, fill=TRUE))
 	
-	faces.sf$USCB_block_10 <- paste0(faces.sf$STATEFP20,faces.sf$COUNTYFP20,faces.sf$TRACTCE20,faces.sf$BLOCKCE20)
+	faces.sf$USCB_block_20 <- paste0(faces.sf$STATEFP20,faces.sf$COUNTYFP20,faces.sf$TRACTCE20,faces.sf$BLOCKCE20)
 	
 	suppressWarnings(faces.sf$ZCTA5CE20 <- ifelse(is.na(as.numeric(faces.sf$ZCTA5CE20)),"99999",sprintf("%05d", as.numeric(faces.sf$ZCTA5CE20))))
 	
@@ -108,15 +108,15 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	faces.sf_99999$ZCTA5CE20 <- paste0("99999.",1:nrow(faces.sf_99999))
 	
 	###perform spatial join on multipart polygon and census block centroids###
-	## (note USCB_block_10 stays _10, for now, see note below in getCensus section)
-	cb.sf <- st_sf(as.data.table(faces.sf)[ZCTA5CE20=="99999",.(geometry = st_union(geometry)),by=list(USCB_block_10)])
+	## (note USCB_block_20 stays _10, for now, see note below in getCensus section)
+	cb.sf <- st_sf(as.data.table(faces.sf)[ZCTA5CE20=="99999",.(geometry = st_union(geometry)),by=list(USCB_block_20)])
 	
 	cb.sf <- st_union(cb.sf[1:nrow(cb.sf),], by_feature = T)
 	
 	###use Surf Point to get contained centroids###
 	cb.sp <- as(cb.sf, 'Spatial')
-	cb.sp.pt <- gPointOnSurface(cb.sp, byid=TRUE, id = cb.sp$USCB_block_10)
-	cb.sp.pt$USCB_block_10 <- row.names(cb.sp.pt)
+	cb.sp.pt <- gPointOnSurface(cb.sp, byid=TRUE, id = cb.sp$USCB_block_20)
+	cb.sp.pt$USCB_block_20 <- row.names(cb.sp.pt)
 	cb.sf.pt <- st_as_sf(cb.sp.pt)
 	rm(cb.sp,cb.sp.pt)
 	cb.sf.pt <- st_set_crs(cb.sf.pt, st_crs(cb.sf))
@@ -131,13 +131,13 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	cb.sf.pt$ZCTA5CE20_sj <- faces.sf_99999$ZCTA5CE20[unlist(int.zone)]
 	
 	cb.pt.dt <- as.data.table(st_drop_geometry(cb.sf.pt))
-	faces.dt <- merge(faces.dt,cb.pt.dt,by="USCB_block_10",all.x=TRUE)
+	faces.dt <- merge(faces.dt,cb.pt.dt,by="USCB_block_20",all.x=TRUE)
 	faces.dt[,ZCTA5CE20 := ifelse(is.na(ZCTA5CE20_sj),ZCTA5CE20,ZCTA5CE20_sj)]
 	
 	###future work: use state plane coordinate systems based on county FIPS code###
 	
 	###generate census block to ZCTA look-up table###
-	cb2zcta.dt <- unique(faces.dt[,c('USCB_block_10','ZCTA5CE20'),with=FALSE])
+	cb2zcta.dt <- unique(faces.dt[,c('USCB_block_20','ZCTA5CE20'),with=FALSE])
 	
 	rm(cb.sf.pt,faces.sf_99999,faces.sf,faces.sf1)
 	
@@ -148,9 +148,9 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	## https://www2.census.gov/programs-surveys/decennial/2020/program-management/2010_20_data_product_release_dates.pdf
 	
 	mycensuskey <-"2ca0b2830ae4835905efab6c35f8cd2b3f570a8a"
-	my.survey <- "dec/sf1"
-	my.vars <- c("P001001")
-	my.vintage <- 2010
+	my.survey <- "dec/pl"
+	my.vars <- c("P1_001N")
+	my.vintage <- 2020
 
 	api.data_cb <- rbindlist(lapply(1:nrow(FIPS.dt), function(x) as.data.table(getCensus(name = my.survey,
 		vintage = my.vintage,
@@ -159,9 +159,9 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 		region = "block:*",
 		regionin = paste0("state:",FIPS.dt[x]$state,"+county:",FIPS.dt[x]$county)))))
 
-	api.data_cb[,USCB_block_10 := paste0(state,county,tract,block)]
+	api.data_cb[,USCB_block_20 := paste0(state,county,tract,block)]
 	
-	#test.dt <- merge(cb2zcta.dt,api.data_cb,by="USCB_block_10",all.x=TRUE)
+	#test.dt <- merge(cb2zcta.dt,api.data_cb,by="USCB_block_20",all.x=TRUE)
 	
 	##################################################
 	###load Topological Faces / Area Landmark files###
@@ -203,49 +203,49 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	###calculate proportion of census block that is park or open space###
 	arealm.dt <- merge(arealm.dt, facesal.dt, by="AREAID")
 	
-	arealm.dt <- merge(arealm.dt, faces.dt[LWFLAG !="P", c("TFID","ZCTA5CE20","USCB_block_10","poly_area"),with=FALSE], by="TFID")
+	arealm.dt <- merge(arealm.dt, faces.dt[LWFLAG !="P", c("TFID","ZCTA5CE20","USCB_block_20","poly_area"),with=FALSE], by="TFID")
 	
-	arealm.dt <- merge(arealm.dt[,.(poly_area=sum(poly_area)),by=list(USCB_block_10)], faces.dt[LWFLAG != "P",.(poly_area=sum(poly_area)), by=USCB_block_10], by="USCB_block_10")
+	arealm.dt <- merge(arealm.dt[,.(poly_area=sum(poly_area)),by=list(USCB_block_20)], faces.dt[LWFLAG != "P",.(poly_area=sum(poly_area)), by=USCB_block_20], by="USCB_block_20")
 	
 	arealm.dt[,prop.area := round(poly_area.x/poly_area.y,2)]
 
-	arealm.dt <- merge(arealm.dt, api.data_cb[,.(P001001=sum(P001001)),by=list(USCB_block_10)], by="USCB_block_10",all.x=TRUE)
+	arealm.dt <- merge(arealm.dt, api.data_cb[,.(P1_001N=sum(P1_001N)),by=list(USCB_block_20)], by="USCB_block_20",all.x=TRUE)
 	
 	#############################################
 	###generate table of census blocks to omit###
 	#############################################
 	
-	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_10,ZCTA5CE20)], api.data_cb[,c("USCB_block_10","P001001"), with=FALSE], by="USCB_block_10", all.x=TRUE)
+	omit.dt <- merge(faces.dt[LWFLAG !="P", .(poly_area=sum(poly_area)),by=list(USCB_block_20,ZCTA5CE20)], api.data_cb[,c("USCB_block_20","P1_001N"), with=FALSE], by="USCB_block_20", all.x=TRUE)
 	
-	omit.dt[,P001001 := ifelse(is.na(P001001),0,P001001)]
+	omit.dt[,P1_001N := ifelse(is.na(P1_001N),0,P1_001N)]
 
-	###deal with errors where unpopulated parks/open spaces have P001001 > 0 (e.g., Central Park, Bronx Zoo)###
-	omit.dt[,P001001 := ifelse(USCB_block_10 %in% unique(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_10), 0, P001001)]
+	###deal with errors where unpopulated parks/open spaces have P1_001N > 0 (e.g., Central Park, Bronx Zoo)###
+	omit.dt[,P1_001N := ifelse(USCB_block_20 %in% unique(arealm.dt[P1_001N > 0 & prop.area==1]$USCB_block_20), 0, P1_001N)]
 	
-	omit.dt <- merge(omit.dt[P001001==0,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)],omit.dt[,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)], by="ZCTA5CE20", all.y=TRUE)
+	omit.dt <- merge(omit.dt[P1_001N==0,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)],omit.dt[,.(poly_area=sum(poly_area)),by=list(ZCTA5CE20)], by="ZCTA5CE20", all.y=TRUE)
 
 	omit.dt[,prop.area := round(poly_area.x/poly_area.y,2)]
 	
 	omit.dt <- omit.dt[prop.area==1]
 	
-	omit.dt[,type := ifelse(ZCTA5CE20 %in% unique(substr(arealm.dt[P001001 > 0 & prop.area==1]$USCB_block_10,1,11)),"park_openspace","unpopulated")]
+	omit.dt[,type := ifelse(ZCTA5CE20 %in% unique(substr(arealm.dt[P1_001N > 0 & prop.area==1]$USCB_block_20,1,11)),"park_openspace","unpopulated")]
 	
 	
 	###################################################
 	###generate a table of neighboring census blocks###
 	###################################################
 	
-	b.dt <- merge(merge(unique(edges.dt[,c("TLID","TFIDL","TFIDR","edge_len"),with=FALSE]),unique(faces.dt[,c("TFID","USCB_block_10","LWFLAG"),with=FALSE]),by.x="TFIDL",by.y="TFID"), unique(faces.dt[,c("TFID","USCB_block_10","LWFLAG"),with=FALSE]),by.x="TFIDR",by.y="TFID")
+	b.dt <- merge(merge(unique(edges.dt[,c("TLID","TFIDL","TFIDR","edge_len"),with=FALSE]),unique(faces.dt[,c("TFID","USCB_block_20","LWFLAG"),with=FALSE]),by.x="TFIDL",by.y="TFID"), unique(faces.dt[,c("TFID","USCB_block_20","LWFLAG"),with=FALSE]),by.x="TFIDR",by.y="TFID")
 
-	b.dt <- b.dt[USCB_block_10.x != USCB_block_10.y]
+	b.dt <- b.dt[USCB_block_20.x != USCB_block_20.y]
 
-	b.dt[,USCB_block_10.1 := ifelse(as.numeric(USCB_block_10.x) > as.numeric(USCB_block_10.y), USCB_block_10.y, USCB_block_10.x)]
-	b.dt[,LWFLAG.1 := ifelse(as.numeric(USCB_block_10.x) > as.numeric(USCB_block_10.y), LWFLAG.y, LWFLAG.x)]
+	b.dt[,USCB_block_20.1 := ifelse(as.numeric(USCB_block_20.x) > as.numeric(USCB_block_20.y), USCB_block_20.y, USCB_block_20.x)]
+	b.dt[,LWFLAG.1 := ifelse(as.numeric(USCB_block_20.x) > as.numeric(USCB_block_20.y), LWFLAG.y, LWFLAG.x)]
 
-	b.dt[,USCB_block_10.2 := ifelse(as.numeric(USCB_block_10.x) > as.numeric(USCB_block_10.y), USCB_block_10.x, USCB_block_10.y)]
-	b.dt[,LWFLAG.2 := ifelse(as.numeric(USCB_block_10.x) > as.numeric(USCB_block_10.y), LWFLAG.x, LWFLAG.y)]
+	b.dt[,USCB_block_20.2 := ifelse(as.numeric(USCB_block_20.x) > as.numeric(USCB_block_20.y), USCB_block_20.x, USCB_block_20.y)]
+	b.dt[,LWFLAG.2 := ifelse(as.numeric(USCB_block_20.x) > as.numeric(USCB_block_20.y), LWFLAG.x, LWFLAG.y)]
 
-	b.dt2 <- b.dt[,.(edge_len=sum(edge_len)),by=list(USCB_block_10.1,LWFLAG.1,USCB_block_10.2,LWFLAG.2)]
+	b.dt2 <- b.dt[,.(edge_len=sum(edge_len)),by=list(USCB_block_20.1,LWFLAG.1,USCB_block_20.2,LWFLAG.2)]
 
 	b.dt2 <- b.dt2[LWFLAG.1 != "P" & LWFLAG.2 != "P"]
 	
@@ -254,39 +254,39 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	#############################################################
 
 	###all relationships###
-	zz1 <- b.dt2[,.(tot=.N),by=USCB_block_10.1]
-	setnames(zz1,c("USCB_block_10.1"),c("USCB_block_10"))
+	zz1 <- b.dt2[,.(tot=.N),by=USCB_block_20.1]
+	setnames(zz1,c("USCB_block_20.1"),c("USCB_block_20"))
 
-	zz2 <- b.dt2[,.(tot=.N),by=USCB_block_10.2]
-	setnames(zz2,c("USCB_block_10.2"),c("USCB_block_10"))
+	zz2 <- b.dt2[,.(tot=.N),by=USCB_block_20.2]
+	setnames(zz2,c("USCB_block_20.2"),c("USCB_block_20"))
 
 	block.dt1 <- rbindlist(list(zz1,zz2),use.names=TRUE,fill=TRUE)
 
 	###inter county relationships###
-	zz1 <- b.dt2[substr(USCB_block_10.1,1,5) != substr(USCB_block_10.2,1,5),.(tot.c=.N),by=USCB_block_10.1]
-	setnames(zz1,c("USCB_block_10.1"),c("USCB_block_10"))
+	zz1 <- b.dt2[substr(USCB_block_20.1,1,5) != substr(USCB_block_20.2,1,5),.(tot.c=.N),by=USCB_block_20.1]
+	setnames(zz1,c("USCB_block_20.1"),c("USCB_block_20"))
 
-	zz2 <- b.dt2[substr(USCB_block_10.1,1,5) != substr(USCB_block_10.2,1,5),.(tot.c=.N),by=USCB_block_10.2]
-	setnames(zz2,c("USCB_block_10.2"),c("USCB_block_10"))
+	zz2 <- b.dt2[substr(USCB_block_20.1,1,5) != substr(USCB_block_20.2,1,5),.(tot.c=.N),by=USCB_block_20.2]
+	setnames(zz2,c("USCB_block_20.2"),c("USCB_block_20"))
 
 	block.dt2 <- rbindlist(list(zz1,zz2),use.names=TRUE,fill=TRUE)
 
-	block_rel.dt <- merge(block.dt1,block.dt2,by="USCB_block_10",all.x=TRUE,all.y=TRUE)
+	block_rel.dt <- merge(block.dt1,block.dt2,by="USCB_block_20",all.x=TRUE,all.y=TRUE)
 
 	rm(zz1,zz2,block.dt1,block.dt2)
 
 	block_rel.dt[,tot.c := ifelse(is.na(tot.c),0,tot.c)]
 
-	block_rel.dt <- merge(block_rel.dt, api.data_cb[,c("USCB_block_10","P001001"), with=FALSE], by="USCB_block_10", all.x=TRUE)
+	block_rel.dt <- merge(block_rel.dt, api.data_cb[,c("USCB_block_20","P1_001N"), with=FALSE], by="USCB_block_20", all.x=TRUE)
 
 	###remove piers misassigned to another county (e.g., piers in Queens and Brooklyn misassigned to Manhattan)###
-	piers.dt <- block_rel.dt[tot.c==tot & P001001==0]
+	piers.dt <- block_rel.dt[tot.c==tot & P1_001N==0]
 
-	b.dt2[,is.pier := ifelse(USCB_block_10.1 %in% piers.dt$USCB_block_10 | USCB_block_10.2 %in% piers.dt$USCB_block_10,1,0)]
+	b.dt2[,is.pier := ifelse(USCB_block_20.1 %in% piers.dt$USCB_block_20 | USCB_block_20.2 %in% piers.dt$USCB_block_20,1,0)]
 
 	###join to get ZCTA from blocks###
-	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_10.1",by.y="USCB_block_10",all.x=TRUE)
-	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_10.2",by.y="USCB_block_10",all.x=TRUE)
+	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_20.1",by.y="USCB_block_20",all.x=TRUE)
+	b.dt2 <- merge(b.dt2,cb2zcta.dt,by.x="USCB_block_20.2",by.y="USCB_block_20",all.x=TRUE)
 	
 	suppressWarnings(b.dt2 <- b.dt2[!(is.na(as.numeric(ZCTA5CE20.x))) & !(is.na(as.numeric(ZCTA5CE20.y)))])
 	
@@ -311,9 +311,9 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 
 	node.dt <- unique(rbindlist(list(node.dt1,node.dt2),use.names=TRUE,fill=TRUE))
 
-	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDL",by.y="TFID",all.x=TRUE)
+	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_20", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDL",by.y="TFID",all.x=TRUE)
 
-	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_10", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDR",by.y="TFID",all.x=TRUE)
+	node.dt <- merge(node.dt,faces.dt[,c("TFID", "USCB_block_20", "ZCTA5CE20","LWFLAG"),with=FALSE],by.x="TFIDR",by.y="TFID",all.x=TRUE)
 
 	node.dt.m <- melt(node.dt, id.vars = c("TNID"), measure = list(c("ZCTA5CE20.x", "ZCTA5CE20.y"), c("LWFLAG.x", "LWFLAG.y")), value.name = c("ZCTA5CE20", "LWFLAG"))
 
@@ -328,7 +328,7 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	#########################################################
 	###generate table for tracts that share a single point###
 	#########################################################
-	pt.dt <- melt(node.dt, id.vars = c("TNID"), measure = list(c("USCB_block_10.x", "USCB_block_10.y"), c("LWFLAG.x", "LWFLAG.y")), value.name = c("USCB_block_10", "LWFLAG"))
+	pt.dt <- melt(node.dt, id.vars = c("TNID"), measure = list(c("USCB_block_20.x", "USCB_block_20.y"), c("LWFLAG.x", "LWFLAG.y")), value.name = c("USCB_block_20", "LWFLAG"))
 
 	###remove tables that are no longer needed###
 	rm(node.dt1,node.dt2,node.dt)
@@ -339,24 +339,24 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	pt.dt <- unique(pt.dt)
 
 	pt.dt <- merge(pt.dt,pt.dt,by="TNID",allow.cartesian=TRUE)
-	pt.dt <- pt.dt[USCB_block_10.x != USCB_block_10.y]
+	pt.dt <- pt.dt[USCB_block_20.x != USCB_block_20.y]
 
 	###remove piers###
-	pt.dt[,is.pier := ifelse((substr(USCB_block_10.x,1,5) != substr(USCB_block_10.y,1,5)) & ((USCB_block_10.x %in% piers.dt$USCB_block_10) | (USCB_block_10.y %in% piers.dt$USCB_block_10)), 1, 0)]
+	pt.dt[,is.pier := ifelse((substr(USCB_block_20.x,1,5) != substr(USCB_block_20.y,1,5)) & ((USCB_block_20.x %in% piers.dt$USCB_block_20) | (USCB_block_20.y %in% piers.dt$USCB_block_20)), 1, 0)]
 
 	pt.dt <- pt.dt[is.pier==0]
 	
 	
 	###join to get ZCTA from blocks###
-	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_10.x",by.y="USCB_block_10",all.x=TRUE)
-	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_10.y",by.y="USCB_block_10",all.x=TRUE)
+	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_20.x",by.y="USCB_block_20",all.x=TRUE)
+	pt.dt <- merge(pt.dt,cb2zcta.dt,by.x="USCB_block_20.y",by.y="USCB_block_20",all.x=TRUE)
 	
 	suppressWarnings(pt.dt <- pt.dt[!(is.na(as.numeric(ZCTA5CE20.x))) & !(is.na(as.numeric(ZCTA5CE20.y)))])
 	
 	pt.dt[,ZCTA5CE20.1 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.y,ZCTA5CE20.x)]
 	pt.dt[,ZCTA5CE20.2 := ifelse(as.numeric(ZCTA5CE20.x) > as.numeric(ZCTA5CE20.y),ZCTA5CE20.x,ZCTA5CE20.y)]
 	
-	pt.dt[,c("TNID","USCB_block_10.x","USCB_block_10.y","is.pier","ZCTA5CE20.x","ZCTA5CE20.y"):=NULL]
+	pt.dt[,c("TNID","USCB_block_20.x","USCB_block_20.y","is.pier","ZCTA5CE20.x","ZCTA5CE20.y"):=NULL]
 	pt.dt <- unique(pt.dt)[ZCTA5CE20.1 != ZCTA5CE20.2]
 
 	pt.dt <- merge(pt.dt, neighbors.dt, by=c("ZCTA5CE20.1", "ZCTA5CE20.2"), all.x=TRUE)
@@ -547,9 +547,9 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 			warning("Some addresses in your address table failed to geocode. Please check your address table.\n")
 		}
 
-		gc.dt[,USCB_block_10 := paste0(sprintf("%02d", as.numeric(cxy_state_id)),sprintf("%03d", as.numeric(cxy_county_id)),sprintf("%06d", as.numeric(cxy_tract_id)),sprintf("%04d", as.numeric(cxy_block_id)))]
+		gc.dt[,USCB_block_20 := paste0(sprintf("%02d", as.numeric(cxy_state_id)),sprintf("%03d", as.numeric(cxy_county_id)),sprintf("%06d", as.numeric(cxy_tract_id)),sprintf("%04d", as.numeric(cxy_block_id)))]
 		
-		gc.dt <- merge(gc.dt,cb2zcta.dt,by="USCB_block_10",all.x=TRUE)
+		gc.dt <- merge(gc.dt,cb2zcta.dt,by="USCB_block_20",all.x=TRUE)
 		
 		gc.dt[,tot := .N, by=group_ID]
 		
@@ -651,7 +651,7 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	
 	all_pairs.dt <- rbindlist(list(all_pairs.dt,island.dt), use.names=TRUE, fill=TRUE)
 
-	keep.ZCTA5CE20 <- suppressWarnings(unique(cb2zcta.dt[(substr(USCB_block_10,1,5) %in% paste0(FIPS.dt$state,FIPS.dt$county)) & (!(is.na(as.numeric(ZCTA5CE20))))]$ZCTA5CE20))
+	keep.ZCTA5CE20 <- suppressWarnings(unique(cb2zcta.dt[(substr(USCB_block_20,1,5) %in% paste0(FIPS.dt$state,FIPS.dt$county)) & (!(is.na(as.numeric(ZCTA5CE20))))]$ZCTA5CE20))
 
 	all_pairs.dt <- all_pairs.dt[((ZCTA5CE20.1 %in% keep.ZCTA5CE20) & (ZCTA5CE20.2 %in% keep.ZCTA5CE20)) | ((ZCTA5CE20.1 %in% keep.ZCTA5CE20) & (is.na(as.numeric(ZCTA5CE20.2))))]
 	
