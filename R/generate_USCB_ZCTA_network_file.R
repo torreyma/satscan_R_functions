@@ -1,5 +1,5 @@
 ## generate_USCB_ZCTA_network_file.R
-# Last modified: 2023-02-13 14:12
+# Last modified: 2023-02-13 17:49
 
 
 ###disable scientific notation###
@@ -20,7 +20,7 @@ library(rgeos)
 data.table::setDTthreads(1)
 
 
-generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL,TIGER_year=2022){
+generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt=NULL,TIGER_year=2012){
 
 
 	FIPS.dt <- copy(as.data.table(FIPS_dt))

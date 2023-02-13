@@ -1,5 +1,5 @@
 ## download_USCB_TIGER_files.R
-## Last modified: 2023-02-07 16:30
+## Last modified: 2023-02-13 17:47
 ###disable scientific notation###
 options(scipen = 999)
 
@@ -9,7 +9,7 @@ library(data.table)
 data.table::setDTthreads(1)
 
 
-download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path,TIGER_year=2022){
+download_USCB_TIGER_files <- function(FIPS_dt,USCB_TIGER.path,TIGER_year=2012){
 
 	FIPS.dt <- copy(as.data.table(FIPS_dt))
 
