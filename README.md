@@ -37,9 +37,10 @@ Here is a code sample for generating a network file for tracts and ZIP code tabu
 ```
 source("R/download_USCB_TIGER_files.R")
 source("R/generate_USCB_tract_network_file.R")
+source("R/generate_USCB_ZCTA_network_file.R")
 
 ###specify the year of the TIGER files you want###
-TIGER_year <- "2022"
+TIGER_year <- "2012"
 
 ###specify place to store USCB TIGER files###
 USCB_TIGER.path <- "C:/SaTScan_resources/census_files"
@@ -60,6 +61,6 @@ download_USCB_TIGER_files(FIPS_dt, USCB_TIGER.path, TIGER_year)
 tract_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt, TIGER_year)
 
 ###generate ZIP code tabulation area relationship file###
-ZCTA_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt, TIGER_year)
+ZCTA_pairs.dt <- generate_USCB_ZCTA_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt, TIGER_year)
 
 
