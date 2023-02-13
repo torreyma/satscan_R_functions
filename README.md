@@ -9,9 +9,9 @@ At this point in time, the following functions are available:
 
 * ```generate_USCB_ZCTA_network_file.R```: Function to generate ZIP code tabulation area (ZCTA) relationship file in CSV format. Includes optional logical arguments to enable bridge connectivity, omit connectivity with parks and other open spaces and omit connectivity with unpopulated ZCTA. In addition, there is the option to input a data frame of to and from addresses.
 
-These functions are set up to work with 2022 TIGER/line data.
+These functions are set up to work with 2022 TIGER files by default, but you can pass the year you want to them.
 
-These functions are currently (February 2023) set up to use **2010** Census tract population data. This is because the Census SF1 data has not been released for the 2020 decennial Census yet. (It is due out in May, at which time these functions can be updated.)
+These functions use total population block data from the 2010 Census.
 
 Required packages that must be installed to run this code:
 
@@ -38,6 +38,9 @@ Here is a code sample for generating a network file for tracts and ZIP code tabu
 source("R/download_USCB_TIGER_files.R")
 source("R/generate_USCB_tract_network_file.R")
 
+###specify the year of the TIGER files you want###
+TIGER_year <- "2022"
+
 ###specify place to store USCB TIGER files###
 USCB_TIGER.path <- "C:/SaTScan_resources/census_files"
 
@@ -51,12 +54,12 @@ ADDR_dt <- data.table(ADDR=c("1 Bay St","4 South Street"), CITY = c("Staten Isla
 
 ###automatically download all necessary files from USCB TIGER website###
 ###you will only have to do this once###
-download_USCB_TIGER_files(FIPS_dt,USCB_TIGER.path)
+download_USCB_TIGER_files(FIPS_dt, USCB_TIGER.path, TIGER_year)
 
 ###generate census tract relationship file###
-tract_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt)
+tract_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt, TIGER_year)
 
 ###generate ZIP code tabulation area relationship file###
-ZCTA_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt)
+ZCTA_pairs.dt <- generate_USCB_tract_network_file(FIPS_dt, USCB_TIGER.path, omit.park_openspace=TRUE, omit.unpopulated=TRUE, use.bridges=TRUE, ADDR_dt, TIGER_year)
 
 

@@ -1,5 +1,5 @@
-### generate_USCB_tract_network_file_2020-MTcomments.R
-# Last modified: 2023-02-07 17:01
+# generate_USCB_tract_network_file.R
+# Last modified: 2023-02-13 14:01
 
 
 ###disable scientific notation###
@@ -71,14 +71,12 @@ generate_USCB_tract_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park
 
 	}), use.names=TRUE, fill=TRUE)
 	
-	faces.dt[,USCB_tract_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20)]
-	faces.dt[,USCB_block_10 := paste0(STATEFP20,COUNTYFP20,TRACTCE20,BLOCKCE20)]
+	faces.dt[,USCB_tract_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10)]
+	faces.dt[,USCB_block_10 := paste0(STATEFP10,COUNTYFP10,TRACTCE10,BLOCKCE10)]
 	
 	###########################################
 	###pull 2010 block-level population data###
 	###########################################
-	## This should be updated to 2020, but the SF1 data is not released yet, see:
-	## https://www2.census.gov/programs-surveys/decennial/2020/program-management/2010_20_data_product_release_dates.pdf
 	
 	mycensuskey <-"2ca0b2830ae4835905efab6c35f8cd2b3f570a8a"
 	my.survey <- "dec/sf1"
