@@ -1,5 +1,5 @@
 ## generate_USCB_ZCTA_network_file.R
-# Last modified: 2023-02-09 17:27
+# Last modified: 2023-02-13 14:12
 
 
 ###disable scientific notation###
@@ -108,7 +108,6 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	faces.sf_99999$ZCTA5CE20 <- paste0("99999.",1:nrow(faces.sf_99999))
 	
 	###perform spatial join on multipart polygon and census block centroids###
-	## (note USCB_block_20 stays _10, for now, see note below in getCensus section)
 	cb.sf <- st_sf(as.data.table(faces.sf)[ZCTA5CE20=="99999",.(geometry = st_union(geometry)),by=list(USCB_block_20)])
 	
 	cb.sf <- st_union(cb.sf[1:nrow(cb.sf),], by_feature = T)
@@ -144,8 +143,6 @@ generate_USCB_ZCTA_network_file <- function(FIPS_dt, USCB_TIGER.path, omit.park_
 	###########################################
 	###pull 2010 block-level population data###
 	###########################################
-	## This SHOULD be updated to 2020, but the SF1 data is not released yet, see:
-	## https://www2.census.gov/programs-surveys/decennial/2020/program-management/2010_20_data_product_release_dates.pdf
 	
 	mycensuskey <-"2ca0b2830ae4835905efab6c35f8cd2b3f570a8a"
 	my.survey <- "dec/pl"
